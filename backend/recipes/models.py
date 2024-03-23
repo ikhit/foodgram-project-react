@@ -89,7 +89,7 @@ class Recipe(models.Model):
         return self.name
 
 
-class Favorites(models.Model):
+class Favorite(models.Model):
     """Модель для избранных рецептов."""
 
     user = models.ForeignKey(

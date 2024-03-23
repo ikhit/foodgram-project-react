@@ -12,8 +12,9 @@ from api.serializers import (
     TagsSerializer,
     RecipesCreateSerializer,
     FollowSerializer,
+    FavoriteSerializer
 )
-from recipes.models import Follow, Ingredients, Tag, Recipe
+from recipes.models import Favorite, Follow, Ingredients, Tag, Recipe
 from users.models import User
 
 
@@ -33,6 +34,20 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
+    
+    @action(detail=True, methods=["POST", "DELETE"], url_path="favorite")
+    def add_or_delete_favorire(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
+        if request.method == "POST":
+            instance = Favorite.objects.create(user=request.user, favorite=recipe)
+            serializer = FavoriteSerializer(instance, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+        instance = Favorite.objects.get(user=request.user, favorite=recipe)
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+        
 
 
 class FollowViewSet(ListCreateDestroyMixin):
@@ -46,7 +61,7 @@ class FollowViewSet(ListCreateDestroyMixin):
     @action(detail=True, methods=["POST", "DELETE"], url_path="subscribe")
     def follow_unfollow(self, request, pk=None):
         following = get_object_or_404(User, id=self.kwargs["pk"])
-        if self.request.method == "DELETE":
+        if request.method == "DELETE":
             instance = Follow.objects.get(
                 user=request.user, following=following
             )
