@@ -1,17 +1,23 @@
 import base64
+from typing import Any
 
+from django.db.models import Count
 from django.core.files.base import ContentFile
-from djoser.serializers import UserSerializer, UserCreateSerializer
+from djoser.serializers import (
+    UserSerializer,
+    UserCreateSerializer,
+    ValidationError,
+)
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
-from recipes.models import Amount, Ingredients, Tag, Recipe
+from recipes.models import Amount, Follow, Ingredients, Tag, Recipe
 from users.models import User
 
 
-class FollowSerializer(serializers.ModelSerializer):
-    pass
-
 class CustomUserSerializer(UserSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
@@ -20,7 +26,16 @@ class CustomUserSerializer(UserSerializer):
             "email",
             "first_name",
             "last_name",
+            "is_subscribed",
         )
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get("request")
+        if request.user.is_authenticated:
+            return Follow.objects.filter(
+                user=request.user, following=obj
+            ).exists()
+        return False
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -39,12 +54,35 @@ class CustomUserCreateSerializer(UserCreateSerializer):
             "password",
         )
 
-    def validate_username(self, value):
-        if value == "me":
-            raise serializers.ValidationError(
-                "Нельзя использовать 'me' в качестве username!"
+
+class FollowSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Follow
+        fields = ("following",)
+
+    def validate(self, attrs):
+        following = self.context.get("following")
+        request = self.context.get("request")
+        if following == request.user:
+            raise ValidationError("Нельзя подписаться на самого себя!")
+        if Follow.objects.filter(
+            user=request.user, following=following
+        ).exists():
+            raise ValidationError(
+                f"Вы уже подписаны на пользователя {following.username}."
             )
-        return value
+        return super().validate(attrs)
+
+    def to_representation(self, instance):
+        representation = CustomUserSerializer(
+            instance=instance.following, context=self.context
+        ).data
+        representation["recipes"] = instance.following.recipes.values(
+            "name", "image", "cooking_time"
+        )[:10]
+        representation["recipes_count"] = instance.following.recipes.count()
+        return representation
 
 
 class IngredientsSerializer(serializers.ModelSerializer):
@@ -87,7 +125,7 @@ class AmountRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(required=True)
+    image = Base64ImageField()
     author = CustomUserCreateSerializer()
     tags = TagsSerializer(many=True)
     ingredients = AmountRecipeSerializer(many=True)
@@ -166,3 +204,70 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return RecipeReadSerializer(instance=instance).data
+
+
+# class FollowSerializer(serializers.ModelSerializer):
+#     user = serializers.SlugRelatedField(
+#         slug_field="username",
+#         default=serializers.CurrentUserDefault(),
+#         read_only=True,
+#     )
+#     # following = serializers.SerializerMethodField()
+#     recipes_count = serializers.SerializerMethodField()
+#     # recipes = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Follow
+#         fields = ("user", "following", "recipes_count")
+#         # validators = [
+#         #     UniqueTogetherValidator(
+#         #         queryset=Follow.objects.all(),
+#         #         fields=("user", "following"),
+#         #         message="Нельзя подписаться дважды на одного пользователя!",
+#         #     )
+#         # ]
+
+#     # def get_following(self, obj):
+#     #     return CustomUserCreateSerializer(
+#     #         instance=self.context.get("following")
+#     #     ).data
+
+#     # def get_recipes(self, obj):
+#     #     recipes = Recipe.objects.filter(author=obj.following).values("name", "image", "cooking_time")
+#     #     print(recipes)
+#     #     return RecipeReadSerializer(many=True, instance=recipes).data
+
+#     # def get_fields(self):
+#     #     fields = super().get_fields()
+#     #     following = self.context.get("following")
+#     #     if following:
+#     #         fields["following"].default = following
+#     #         fields["following"].required = False
+#     #     return fields
+
+#     def get_recipes_count(self, obj):
+#         return obj.following.recipes.count()
+
+#     # def validate(self, attrs):
+#     #     following = self.context["following"]
+#     #     request = self.context["request"]
+#     #     if following == request.user:
+#     #         raise ValidationError("Нельзя подписаться на самого себя!")
+#     #     return attrs
+
+#     def to_representation(self, instance):
+#         # recipes_count = super().to_representation(instance)
+#         # print(recipes_count)
+#         # print(self.fields["recipes_count"].get_attribute(instance))
+#         representation = CustomUserSerializer(
+#             instance=instance.following, context=self.context
+#         ).data
+#         representation["recipes_count"] = instance.following.recipes.count()
+
+
+#         # representation = super().to_representation(instance)
+#         # representation.pop("user")
+#         # follow_data = representation.pop("following")
+#         # representation.update(follow_data)
+
+#         return representation

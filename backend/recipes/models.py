@@ -106,3 +106,27 @@ class Favorites(models.Model):
                 fields=["user", "favorite"], name="unique_user_favorite"
             )
         ]
+
+
+class Follow(models.Model):
+    """Модель подписчика."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="users"
+    )
+    following = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="followings", blank=True
+    )
+
+    class Meta:
+        verbose_name = "Подписчик"
+        verbose_name_plural = "Подписчики"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "following"], name="unique_user_following"
+            ),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F("following")),
+                name="user_self_following",
+            ),
+        ]
