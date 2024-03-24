@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from users.models import User
-from recipes.models import Ingredients, Tag, Recipe
+from recipes.models import Ingredients, Tags, Recipe
 
 
 class IngredientsAdmin(admin.ModelAdmin):
@@ -16,7 +16,7 @@ class IngredientsAdmin(admin.ModelAdmin):
     )
 
 
-class TagAdmin(admin.ModelAdmin):
+class TagsAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
@@ -47,6 +47,6 @@ class UserAdmin(admin.ModelAdmin):
 
 
 admin.site.register(User, UserAdmin)
-admin.site.register(Tag, TagAdmin)
+admin.site.register(Tags, TagsAdmin)
 admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(Ingredients, IngredientsAdmin)

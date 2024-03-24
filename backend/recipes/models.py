@@ -1,19 +1,19 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 
+from .const import (
+    COOKING_TIME_MINIMUM,
+    INGREDIENTS_AMOUNT_MIN_VALUE,
+    INGREDIENTS_MEAS_NAME_MAX_LENGTH,
+    INGREDIENTS_NAME_MAX_LENGTH,
+    TAGS_COLOR_MAX_LENGTH,
+    TAGS_NAME_MAX_LENGTH,
+    RECIPE_NAME_MAX_LENGTH,
+)
 from users.models import User
 
 
-COOKING_TIME_MINIMUM = 1
-INGREDIENTS_AMOUNT_MIN_VALUE = 1
-TAGS_NAME_MAX_LENGTH = 15
-TAGS_COLOR_MAX_LENGTH = 16
-RECIPE_NAME_MAX_LENGTH = 150
-INGREDIENTS_NAME_MAX_LENGTH = 150
-INGREDIENTS_MEAS_NAME_MAX_LENGTH = 30
-
-
-class Tag(models.Model):
+class Tags(models.Model):
     """Модель тега."""
 
     name = models.CharField(
@@ -36,7 +36,7 @@ class Ingredients(models.Model):
     """Модель ингридиентов."""
 
     name = models.CharField(
-        "Название ингридиента", max_length=INGREDIENTS_AMOUNT_MIN_VALUE
+        "Название ингридиента", max_length=INGREDIENTS_NAME_MAX_LENGTH
     )
     measurement_unit = models.CharField(
         "Единица измерения количества",
@@ -70,7 +70,7 @@ class Recipe(models.Model):
         verbose_name="автор рецепта",
     )
     tags = models.ManyToManyField(
-        Tag,
+        Tags,
         related_name="recipes",
         verbose_name="тег",
     )
@@ -92,7 +92,9 @@ class Recipe(models.Model):
 class Amount(models.Model):
     """Модель для количетсва ингрединета в блюде."""
 
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name="amounts")
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, related_name="amounts"
+    )
     ingredient = models.ForeignKey(
         Ingredients,
         on_delete=models.CASCADE,
@@ -157,7 +159,7 @@ class Follow(models.Model):
         return f"{self.user} подписан на {self.following}"
 
 
-class ShopingCart(models.Model):
+class ShoppingCart(models.Model):
     """Модель продуктовой корзины."""
 
     user = models.ForeignKey(

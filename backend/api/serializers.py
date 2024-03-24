@@ -13,9 +13,9 @@ from recipes.models import (
     Favorite,
     Follow,
     Ingredients,
-    Tag,
+    Tags,
     Recipe,
-    ShopingCart,
+    ShoppingCart,
 )
 from users.models import User
 
@@ -109,7 +109,7 @@ class TagsSerializer(serializers.ModelSerializer):
     """Сериализатор для тегов."""
 
     class Meta:
-        model = Tag
+        model = Tags
         fields = ("id", "name", "color", "slug")
 
 
@@ -159,7 +159,7 @@ class AmountReadSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "amount", "measurement_unit")
 
 
-class ShopingCartSerializer(serializers.ModelSerializer):
+class ShoppingCartSerializer(serializers.ModelSerializer):
     """Сериализатор для продуктовой корзины."""
 
     name = serializers.CharField(source="recipe.name", read_only=True)
@@ -169,7 +169,7 @@ class ShopingCartSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = ShopingCart
+        model = ShoppingCart
         fields = ("id", "name", "image", "cooking_time")
 
 
@@ -195,7 +195,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagsSerializer(many=True)
     ingredients = AmountReadSerializer(source="amounts", many=True)
     is_favorited = serializers.SerializerMethodField()
-    is_in_shoping_cart = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -204,7 +204,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             "ingredients",
             "tags",
             "is_favorited",
-            "is_in_shoping_cart",
+            "is_in_shopping_cart",
             "image",
             "name",
             "text",
@@ -220,10 +220,10 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             ).exists()
         return False
 
-    def get_is_in_shoping_cart(self, obj):
+    def get_is_in_shopping_cart(self, obj):
         request = self.context.get("request")
         if request.user.is_authenticated:
-            return ShopingCart.objects.filter(
+            return ShoppingCart.objects.filter(
                 user=request.user, recipe=obj
             ).exists()
         return False
@@ -234,7 +234,7 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
 
     image = Base64ImageField(required=True)
     tags = serializers.PrimaryKeyRelatedField(
-        many=True, required=True, queryset=Tag.objects.all()
+        many=True, required=True, queryset=Tags.objects.all()
     )
     ingredients = AmountRecipeSerializer(many=True, required=True)
 
@@ -277,11 +277,11 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
         )
 
     def update(self, instance, validated_data):
-        tags_data = validated_data.pop("tags")
+        tag_data = validated_data.pop("tags")
         ingredient_data = validated_data.pop("ingredients")
         instance.ingredients.all().delete()
         instance = self.add_update_ingredients_and_tags(
-            ingredients=ingredient_data, tags=tags_data, instance=instance
+            ingredients=ingredient_data, tags=tag_data, instance=instance
         )
         instance.save()
         return instance

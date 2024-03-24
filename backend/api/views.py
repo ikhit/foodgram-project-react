@@ -1,45 +1,90 @@
 from django.db.models import Count, Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import UserViewSet as DjoserUserViewSet
+from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 
+from .filters import RecipeFilter
+
+from .permissions import IsAuthorOrAdminOrReadOnly, SelfORAdminOrReadOnly
 from .viewsets import RetrieveListMixin, ListCreateDestroyMixin
-from api.serializers import (
+from .serializers import (
     IngredientsSerializer,
     TagsSerializer,
     RecipesCreateSerializer,
     FollowSerializer,
     FavoriteSerializer,
-    ShopingCartSerializer,
+    ShoppingCartSerializer,
 )
 from recipes.models import (
     Favorite,
     Follow,
     Ingredients,
-    Tag,
+    Tags,
     Recipe,
-    ShopingCart,
+    ShoppingCart,
 )
 from users.models import User
 
 
+class CustomUserViewSet(DjoserUserViewSet):
+    """Переопределение стандартного вьюсета djoser
+    для правильной работы эндпоинта /me/.
+    """
+
+    permission_classes = (SelfORAdminOrReadOnly,)
+
+    @action(
+        ["get", "put", "patch", "delete"],
+        detail=False,
+        permission_classes=(IsAuthenticated,),
+    )
+    def me(self, request, *args, **kwargs):
+        self.get_object = self.get_instance
+        if request.method == "GET":
+            return self.retrieve(request, *args, **kwargs)
+        elif request.method == "PUT":
+            return self.update(request, *args, **kwargs)
+        elif request.method == "PATCH":
+            return self.partial_update(request, *args, **kwargs)
+        elif request.method == "DELETE":
+            return self.destroy(request, *args, **kwargs)
+
+
 class TagsViewSet(RetrieveListMixin):
-    queryset = Tag.objects.all()
+    """Набор представлений для тегов."""
+
+    queryset = Tags.objects.all()
     serializer_class = TagsSerializer
+    permission_classes = (AllowAny,)
 
 
 class IngredientsViewSet(RetrieveListMixin):
+    """Набор представлений для ингредиентов."""
+
     queryset = Ingredients.objects.all()
     serializer_class = IngredientsSerializer
+    permission_classes = (AllowAny,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ("name",)
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
+    """Набор представления для рецептов, добавления рецептов в
+    избранное и добавление в корзину.
+    """
+
     queryset = Recipe.objects.all()
     serializer_class = RecipesCreateSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = RecipeFilter
+    permission_classes = (IsAuthorOrAdminOrReadOnly,)
+    http_method_names = ["get", "put", "post", "delete"]
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
@@ -67,17 +112,17 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Добавить рецепт в корзину или удалить его из корзины."""
         recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
         if request.method == "POST":
-            instance = ShopingCart.objects.create(
-                user=request.user, shoping_list=recipe
+            instance = ShoppingCart.objects.create(
+                user=request.user, shopping_list=recipe
             )
-            serializer = ShopingCartSerializer(instance, data=request.data)
+            serializer = ShoppingCartSerializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(
                 data=serializer.data, status=status.HTTP_201_CREATED
             )
         instance = get_object_or_404(
-            ShopingCart, user=request.user, shoping_list=recipe
+            ShoppingCart, user=request.user, shopping_list=recipe
         )
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -85,7 +130,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["GET"], url_path="download_shopping_cart")
     def send_shopping_list(self, request, pk=None):
         """Скачать список ингредиентов и граммовки."""
-        recipe_list = ShopingCart.objects.filter(user=request.user)
+        recipe_list = ShoppingCart.objects.filter(user=request.user)
         list_text = "Список игредиентов и граммовки: \n"
         for recipe in recipe_list:
             data = recipe.recipe.ingredients.values(
@@ -128,6 +173,6 @@ class FollowViewSet(ListCreateDestroyMixin):
         return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["GET"])
-    def subscribers_list(self, request, pk=None):
+    def subscriptions_list(self, request, pk=None):
         """Получить список всех подписок."""
         return super().list(request)
