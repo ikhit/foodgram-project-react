@@ -1,3 +1,11 @@
+# from django.conf import settings
+# from django.core.management import BaseCommand
+
+
+# class Command(BaseCommand):
+#     help = "Import ingredietns to database."
+    
+#     def handle(self, *args, **options):
 import sqlite3
 
 import pandas as pd

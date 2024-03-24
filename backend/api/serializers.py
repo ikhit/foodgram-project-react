@@ -8,11 +8,23 @@ from djoser.serializers import (
 )
 from rest_framework import serializers
 
-from recipes.models import Amount, Favorite, Follow, Ingredients, Tag, Recipe
+from recipes.models import (
+    Amount,
+    Favorite,
+    Follow,
+    Ingredients,
+    Tag,
+    Recipe,
+    ShopingCart,
+)
 from users.models import User
+
+FOLLOWING_USER_RECIPES_SHOW_COUNT = 5
 
 
 class CustomUserSerializer(UserSerializer):
+    """Сериализатор для чтения данных пользователя."""
+
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
@@ -36,6 +48,8 @@ class CustomUserSerializer(UserSerializer):
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
+    """Сериализатор для регистрации пользователя."""
+
     password = serializers.CharField(
         style={"input_type": "password"}, write_only=True
     )
@@ -53,6 +67,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписок."""
 
     class Meta:
         model = Follow
@@ -67,7 +82,7 @@ class FollowSerializer(serializers.ModelSerializer):
             user=request.user, following=following
         ).exists():
             raise ValidationError(
-                f"Вы уже подписаны на пользователя {following.username}."
+                f"Вы уже подписаны на пользователя {following}."
             )
         return super().validate(attrs)
 
@@ -77,24 +92,30 @@ class FollowSerializer(serializers.ModelSerializer):
         ).data
         representation["recipes"] = instance.following.recipes.values(
             "name", "image", "cooking_time"
-        )[:10]
+        )[:FOLLOWING_USER_RECIPES_SHOW_COUNT]
         representation["recipes_count"] = instance.following.recipes.count()
         return representation
 
 
 class IngredientsSerializer(serializers.ModelSerializer):
+    """Сериализатор для ингредиентов."""
+
     class Meta:
         model = Ingredients
         fields = ("id", "name", "measurement_unit")
 
 
 class TagsSerializer(serializers.ModelSerializer):
+    """Сериализатор для тегов."""
+
     class Meta:
         model = Tag
         fields = ("id", "name", "color", "slug")
 
 
 class Base64ImageField(serializers.ImageField):
+    """Сериализатор для изображений."""
+
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith("data:image"):
             format, imgstr = data.split(";base64,")
@@ -104,6 +125,8 @@ class Base64ImageField(serializers.ImageField):
 
 
 class AmountRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для ингредиентов и их количества в рецепте."""
+
     id = serializers.IntegerField(required=True)
     amount = serializers.IntegerField(required=True)
 
@@ -121,7 +144,38 @@ class AmountRecipeSerializer(serializers.ModelSerializer):
         return representation
 
 
+class AmountReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для чтнеия названия и количества ингредиентов."""
+
+    id = serializers.IntegerField(source="ingredient.id")
+    name = serializers.CharField(source="ingredient.name")
+    measurement_unit = serializers.CharField(
+        source="ingredient.measurement_unit"
+    )
+    amount = serializers.IntegerField()
+
+    class Meta:
+        model = Amount
+        fields = ("id", "name", "amount", "measurement_unit")
+
+
+class ShopingCartSerializer(serializers.ModelSerializer):
+    """Сериализатор для продуктовой корзины."""
+
+    name = serializers.CharField(source="recipe.name", read_only=True)
+    image = serializers.ImageField(source="recipe.image", read_only=True)
+    cooking_time = serializers.IntegerField(
+        source="recipe.cooking_time", read_only=True
+    )
+
+    class Meta:
+        model = ShopingCart
+        fields = ("id", "name", "image", "cooking_time")
+
+
 class FavoriteSerializer(serializers.ModelSerializer):
+    """Сериализатор для избранных рецептов."""
+
     name = serializers.CharField(source="favorite.name", read_only=True)
     image = serializers.ImageField(source="favorite.image", read_only=True)
     cooking_time = serializers.IntegerField(
@@ -134,11 +188,14 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для вывода данных о рецепте."""
+
     image = Base64ImageField()
     author = CustomUserCreateSerializer()
     tags = TagsSerializer(many=True)
-    ingredients = AmountRecipeSerializer(many=True)
+    ingredients = AmountReadSerializer(source="amounts", many=True)
     is_favorited = serializers.SerializerMethodField()
+    is_in_shoping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -147,6 +204,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             "ingredients",
             "tags",
             "is_favorited",
+            "is_in_shoping_cart",
             "image",
             "name",
             "text",
@@ -162,8 +220,18 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             ).exists()
         return False
 
+    def get_is_in_shoping_cart(self, obj):
+        request = self.context.get("request")
+        if request.user.is_authenticated:
+            return ShopingCart.objects.filter(
+                user=request.user, recipe=obj
+            ).exists()
+        return False
+
 
 class RecipesCreateSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания рецепта."""
+
     image = Base64ImageField(required=True)
     tags = serializers.PrimaryKeyRelatedField(
         many=True, required=True, queryset=Tag.objects.all()
@@ -186,38 +254,35 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
             "author",
         )
 
+    def add_update_ingredients_and_tags(self, ingredients, tags, instance):
+        """Добавить или обновить рецепты и теги к рецепту."""
+        amounts = [
+            Amount(
+                recipe=instance,
+                ingredient_id=ingredient["id"],
+                amount=ingredient["amount"],
+            )
+            for ingredient in ingredients
+        ]
+        Amount.objects.bulk_create(amounts)
+        instance.tags.set(tags)
+        return instance
+
     def create(self, validated_data):
         ingredient_data = validated_data.pop("ingredients")
-        tags_data = validated_data.pop("tags")
+        tag_data = validated_data.pop("tags")
         recipe = Recipe.objects.create(**validated_data)
-        for ingredient in ingredient_data:
-            ingredient_id = ingredient.get("id")
-            ingredient_amount = ingredient.get("amount")
-            ingredient_obj = Ingredients.objects.get(id=ingredient_id)
-            ingredients = Amount.objects.create(
-                ingredient=ingredient_obj, amount=ingredient_amount
-            )
-            recipe.ingredients.add(ingredients)
-
-        recipe.tags.set(tags_data)
-        return recipe
+        return self.add_update_ingredients_and_tags(
+            ingredients=ingredient_data, tags=tag_data, instance=recipe
+        )
 
     def update(self, instance, validated_data):
         tags_data = validated_data.pop("tags")
-        if tags_data:
-            instance.tags.set(tags_data)
         ingredient_data = validated_data.pop("ingredients")
-        if ingredient_data:
-            instance.ingredients.all().delete()
-            for ingredient in ingredient_data:
-
-                ingredient_id = ingredient.get("id")
-                ingredient_amount = ingredient.get("amount")
-                ingredient_obj = Ingredients.objects.get(id=ingredient_id)
-                ingredients = Amount.objects.create(
-                    ingredient=ingredient_obj, amount=ingredient_amount
-                )
-                instance.ingredients.add(ingredients)
+        instance.ingredients.all().delete()
+        instance = self.add_update_ingredients_and_tags(
+            ingredients=ingredient_data, tags=tags_data, instance=instance
+        )
         instance.save()
         return instance
 
