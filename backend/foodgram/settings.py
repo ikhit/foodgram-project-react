@@ -1,17 +1,18 @@
 from pathlib import Path
 import os
 
+from django.core.management.utils import get_random_secret_key
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = (
-    "django-insecure-eqhv82s*+yq@d^_woi5s3azz25w##+xh(8mb+p&+2v0)(0%g)u"
+SECRET_KEY = os.getenv("DJANGO_SETTINGS_SECRET_KEY", get_random_secret_key())
+
+DEBUG = os.getenv("DJANGO_DEBUG_STATUS", False) == "True"
+
+ALLOWED_HOSTS = os.getenv("DJANGO_SETTINGS_ALLOWED_HOSTS", "127.0.0.1").split(
+    ", "
 )
-
-DEBUG = True
-
-ALLOWED_HOSTS = ["*"]
 
 
 INSTALLED_APPS = [
@@ -63,8 +64,12 @@ WSGI_APPLICATION = "foodgram.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "foodgram_db"),
+        "USER": os.getenv("POSTGRES_USER", "foodgram_user"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", ""),
+        "PORT": os.getenv("DB_PORT", 5432),
     }
 }
 

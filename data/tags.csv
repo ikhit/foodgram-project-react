@@ -1,4 +1,3 @@
-id,name,color,slug
-1,Завтрак,#DAA520,breakfast
-2,Обед,#32CD32,lunch
-3,Ужин,#7B68EE,dinner
+Завтрак,#DAA520,breakfast
+Обед,#32CD32,lunch
+Ужин,#7B68EE,dinner

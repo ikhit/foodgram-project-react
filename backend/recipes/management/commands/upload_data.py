@@ -1,22 +1,31 @@
-import sqlite3
+import csv
 
 from django.core.management import BaseCommand
-import pandas as pd
+
+from recipes.models import Ingredients, Tags
+
 
 class Command(BaseCommand):
     help = "Import ingredietns and tags to database."
-    
-    def handle(self, *args, **options):
-        df = pd.read_csv("../data/ingredients.csv")
-        df.columns = df.columns.str.strip()
-        df.columns = ["name", "measurement_unit"]
-        df.index = df.index + 1
-        df.index.name = "id"
-        connection = sqlite3.connect("db.sqlite3")
-        df.to_sql("recipes_ingredients", connection, if_exists="append")
-        connection.close()
 
-        df_tags = pd.read_csv("../data/tags.csv")
-        connection = sqlite3.connect("db.sqlite3")
-        df_tags.to_sql("recipes_tags", connection, if_exists="append", index=False)
-        print("Upload done!")
+    def handle(self, *args, **options):
+        with open(
+            "../data/ingredients.csv", "r", encoding="utf-8"
+        ) as ingredients_file:
+            reader = csv.reader(ingredients_file)
+            for row in reader:
+                name, measurement_unit = row
+                Ingredients.objects.get_or_create(
+                    name=name.strip(),
+                    measurement_unit=measurement_unit.strip(),
+                )
+
+        with open("../data/tags.csv", "r", encoding="utf-8") as tags_file:
+            reader = csv.reader(tags_file)
+            for row in reader:
+                name, color, slug = row
+                Tags.objects.get_or_create(
+                    name=name.strip(),
+                    color=color.strip(),
+                    slug=slug.strip(),
+                )
