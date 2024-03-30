@@ -9,7 +9,7 @@ class RecipeFilter(filters.FilterSet):
         field_name="author__username",
         lookup_expr="icontains",
     )
-    tags = filters.CharFilter(
+    tags = filters.MultipleChoiceFilter(
         field_name="tags__slug",
         lookup_expr="icontains",
     )

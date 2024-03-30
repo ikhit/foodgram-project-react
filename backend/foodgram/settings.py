@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -97,7 +98,12 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
+STATIC_ROOT = "/backend_static/static/"
+
 STATICFILES_DIRS = ((BASE_DIR / "static/"),)
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -116,7 +122,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": (
         "rest_framework.pagination.LimitOffsetPagination"
     ),
-    "PAGE_SIZE": 10,
+    "PAGE_SIZE": 6,
 }
 
 DJOSER = {

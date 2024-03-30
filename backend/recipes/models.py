@@ -80,10 +80,14 @@ class Recipe(models.Model):
         related_name="recipes",
         verbose_name="список и количетсво ингредиентов",
     )
+    pub_date = models.DateTimeField(
+        verbose_name="Дата публикации", auto_now_add=True
+    )
 
     class Meta:
         verbose_name = "Рецепт"
         verbose_name_plural = "Рецепты"
+        ordering = ["-pub_date"]
 
     def __str__(self):
         return self.name
@@ -105,6 +109,9 @@ class Amount(models.Model):
         "Количество ингредиентов",
         validators=[MinValueValidator(INGREDIENTS_AMOUNT_MIN_VALUE)],
     )
+
+    class Meta:
+        verbose_name = "Ингредиент и количество"
 
     def __str__(self):
         return f"{self.ingredient}: {self.amount}"

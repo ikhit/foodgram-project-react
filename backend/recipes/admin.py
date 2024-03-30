@@ -6,19 +6,15 @@ from recipes.models import Ingredients, Tags, Recipe
 
 class IngredientsAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "name",
         "measurement_unit",
     )
-    search_fields = (
-        "id",
-        "name",
-    )
+    search_fields = ("name",)
+    list_filter = ("name",)
 
 
 class TagsAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "name",
         "slug",
         "color",
@@ -28,13 +24,16 @@ class TagsAdmin(admin.ModelAdmin):
 
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "name",
-        "text",
-        "cooking_time",
         "author",
     )
-    search_fields = ("id", "name")
+    search_fields = ("id", "name", "author")
+    list_filter = ("author", "tags", "name")
+
+    def favorite_count(self, obj):
+        return obj.favorites.count()
+
+    favorite_count.short_description = "Добавлений в избранное: "
 
 
 class UserAdmin(admin.ModelAdmin):
@@ -43,7 +42,8 @@ class UserAdmin(admin.ModelAdmin):
         "username",
         "email",
     )
-    search_fields = ("id", "name")
+    search_fields = ("id", "username")
+    list_filter = ("email", "username")
 
 
 admin.site.register(User, UserAdmin)

@@ -92,7 +92,7 @@ class FollowSerializer(serializers.ModelSerializer):
         ).data
         representation["recipes"] = instance.following.recipes.values(
             "name", "image", "cooking_time"
-        )[:FOLLOWING_USER_RECIPES_SHOW_COUNT]
+        ).order_by("-pub_date")[:FOLLOWING_USER_RECIPES_SHOW_COUNT]
         representation["recipes_count"] = instance.following.recipes.count()
         return representation
 
@@ -277,6 +277,12 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
         )
 
     def update(self, instance, validated_data):
+        instance.name = validated_data.get("name", instance.name)
+        instance.text = validated_data.get("text", instance.text)
+        instance.cooking_time = validated_data.get(
+            "cooking_time", instance.cooking_time
+        )
+        instance.image = validated_data.get("image", instance.image)
         tag_data = validated_data.pop("tags")
         ingredient_data = validated_data.pop("ingredients")
         instance.ingredients.all().delete()

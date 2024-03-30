@@ -1,5 +1,5 @@
 from django.db.models import Count, Sum
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
@@ -34,7 +34,8 @@ from users.models import User
 
 class CustomUserViewSet(DjoserUserViewSet):
     """Переопределение стандартного вьюсета djoser
-    для правильной работы эндпоинта /me/.
+    для правильной работы эндпоинта /me/ и
+    удаление неиспользующихся эндпоинтов.
     """
 
     permission_classes = (SelfORAdminOrReadOnly,)
@@ -54,6 +55,27 @@ class CustomUserViewSet(DjoserUserViewSet):
             return self.partial_update(request, *args, **kwargs)
         elif request.method == "DELETE":
             return self.destroy(request, *args, **kwargs)
+
+    def activation(self, request, *args, **kwargs):
+        return HttpResponseNotFound
+
+    def resend_activation(self, request, *args, **kwargs):
+        return HttpResponseNotFound
+
+    def reset_password_confirm(self, request, *args, **kwargs):
+        return HttpResponseNotFound
+
+    def reset_password(self, request, *args, **kwargs):
+        return HttpResponseNotFound
+
+    def set_username(self, request, *args, **kwargs):
+        return HttpResponseNotFound
+
+    def reset_username_confirm(self, request, *args, **kwargs):
+        return HttpResponseNotFound
+
+    def reset_username(self, request, *args, **kwargs):
+        return HttpResponseNotFound
 
 
 class TagsViewSet(RetrieveListMixin):
@@ -89,7 +111,12 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
 
-    @action(detail=True, methods=["POST", "DELETE"], url_path="favorite")
+    @action(
+        detail=True,
+        methods=["POST", "DELETE"],
+        url_path="favorite",
+        url_name="favorite",
+    )
     def add_or_delete_favorires(self, request, pk=None):
         """Добавление или удаление рецепта из 'избранного'."""
         recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
@@ -107,13 +134,18 @@ class RecipesViewSet(viewsets.ModelViewSet):
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["POST", "DELETE"], url_path="shopping_cart")
-    def add_or_delete_recipes(self, request, pk=None):
+    @action(
+        detail=True,
+        methods=["POST", "DELETE"],
+        url_path="shopping_cart",
+        url_name="shopping-cart",
+    )
+    def add_or_delete_recipes_to_cart(self, request, pk=None):
         """Добавить рецепт в корзину или удалить его из корзины."""
         recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
         if request.method == "POST":
             instance = ShoppingCart.objects.create(
-                user=request.user, shopping_list=recipe
+                user=request.user, recipe=recipe
             )
             serializer = ShoppingCartSerializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -122,7 +154,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 data=serializer.data, status=status.HTTP_201_CREATED
             )
         instance = get_object_or_404(
-            ShoppingCart, user=request.user, shopping_list=recipe
+            ShoppingCart, user=request.user, recipe=recipe
         )
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -155,7 +187,12 @@ class FollowViewSet(ListCreateDestroyMixin):
             recipes_count=Count("following__recipes")
         )
 
-    @action(detail=True, methods=["POST", "DELETE"], url_path="subscribe")
+    @action(
+        detail=True,
+        methods=["POST", "DELETE"],
+        url_path="subscribe",
+        url_name="follow",
+    )
     def follow_unfollow(self, request, pk=None):
         """Подписаться или отписаться от пользователя."""
         following = get_object_or_404(User, id=self.kwargs["pk"])
