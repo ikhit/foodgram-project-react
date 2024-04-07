@@ -1,8 +1,8 @@
 from rest_framework.mixins import (
-    RetrieveModelMixin,
-    ListModelMixin,
     CreateModelMixin,
     DestroyModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
 )
 from rest_framework.viewsets import GenericViewSet
 

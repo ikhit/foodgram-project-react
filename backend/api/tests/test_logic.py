@@ -1,26 +1,25 @@
-from http import HTTPStatus
 import json
+from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from recipes.models import (
+    Favorite,
+    Follow,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Tag,
+)
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
-
-from recipes.models import (
-    Recipe,
-    Tag,
-    Ingredient,
-    Follow,
-    Favorite,
-    ShoppingCart,
-)
 
 from .api_data import (
     change_password_data,
     image,
     login_data,
-    user_password,
     user_email,
+    user_password,
 )
 
 User = get_user_model()

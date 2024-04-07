@@ -1,7 +1,6 @@
 import csv
 
 from django.core.management import BaseCommand
-
 from recipes.models import Ingredient, Tag
 
 
@@ -10,7 +9,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         new_ingredients = []
-        with open("data/ingredients.csv", "r", encoding="utf-8") as ingredients_file:
+        with open(
+            "data/ingredients.csv", "r", encoding="utf-8"
+        ) as ingredients_file:
             reader = csv.reader(ingredients_file)
             existing_names = set(
                 Ingredient.objects.all().values_list("name", flat=True)

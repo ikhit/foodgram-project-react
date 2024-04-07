@@ -1,16 +1,16 @@
-from django.db import models
 from django.core.validators import MinValueValidator
+from django.db import models
+from users.models import User
 
 from .const import (
     COOKING_TIME_MINIMUM,
     INGREDIENTS_AMOUNT_MIN_VALUE,
     INGREDIENTS_MEAS_NAME_MAX_LENGTH,
     INGREDIENTS_NAME_MAX_LENGTH,
+    RECIPE_NAME_MAX_LENGTH,
     TAGS_COLOR_MAX_LENGTH,
     TAGS_NAME_MAX_LENGTH,
-    RECIPE_NAME_MAX_LENGTH,
 )
-from users.models import User
 
 
 class Tag(models.Model):

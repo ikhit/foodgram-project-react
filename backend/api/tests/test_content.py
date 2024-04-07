@@ -1,24 +1,19 @@
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from recipes.models import Ingredient, Recipe, Tag
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from recipes.models import (
-    Recipe,
-    Tag,
-    Ingredient,
-)
-
 from ..serializers import RecipesCreateSerializer
 from .api_data import (
-    expected_user_list,
     create_content_data,
-    expected_user_follow,
-    expected_recipe_favorite_data,
-    expected_recipe_id_favorite,
-    expected_recipe_id_cart,
-    user_email,
     expected_recipe_data,
+    expected_recipe_favorite_data,
+    expected_recipe_id_cart,
+    expected_recipe_id_favorite,
+    expected_user_follow,
+    expected_user_list,
+    user_email,
 )
 
 User = get_user_model()

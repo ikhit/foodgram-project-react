@@ -2,23 +2,23 @@ import base64
 
 from django.core.files.base import ContentFile
 from djoser.serializers import (
-    UserSerializer,
     UserCreateSerializer,
+    UserSerializer,
     ValidationError,
 )
-from rest_framework import serializers
-
-from .pagination import PAGE_SIZE
 from recipes.models import (
     Amount,
     Favorite,
     Follow,
     Ingredient,
-    Tag,
     Recipe,
     ShoppingCart,
+    Tag,
 )
+from rest_framework import serializers
 from users.models import User
+
+from .pagination import PAGE_SIZE
 
 
 class CustomUserSerializer(UserSerializer):

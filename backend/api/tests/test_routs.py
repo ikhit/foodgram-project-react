@@ -2,14 +2,9 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from recipes.models import Ingredient, Recipe, Tag
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
-
-from recipes.models import (
-    Recipe,
-    Tag,
-    Ingredient,
-)
 
 User = get_user_model()
 
