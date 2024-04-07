@@ -3,11 +3,10 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from rest_framework.authtoken.models import Token
-from rest_framework.test import APITestCase
-
 from recipes.models import (Favorite, Follow, Ingredient, Recipe, ShoppingCart,
                             Tag)
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APITestCase
 
 from .api_data import (change_password_data, image, login_data, user_email,
                        user_password)
