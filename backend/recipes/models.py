@@ -1,6 +1,5 @@
 from django.core.validators import MinValueValidator
 from django.db import models
-
 from users.models import User
 
 from .const import (COOKING_TIME_MINIMUM, INGREDIENTS_AMOUNT_MIN_VALUE,
