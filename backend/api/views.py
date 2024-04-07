@@ -124,11 +124,15 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Добавление или удаление рецепта из 'избранного'."""
         recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
         if request.method == "POST":
-            instance = Favorite.objects.create(user=request.user, favorite=recipe)
+            instance = Favorite.objects.create(
+                user=request.user, favorite=recipe
+            )
             serializer = FavoriteSerializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+            return Response(
+                data=serializer.data, status=status.HTTP_201_CREATED
+            )
         instance = Favorite.objects.get(user=request.user, favorite=recipe)
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -143,12 +147,18 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Добавить рецепт в корзину или удалить его из корзины."""
         recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
         if request.method == "POST":
-            instance = ShoppingCart.objects.create(user=request.user, recipe=recipe)
+            instance = ShoppingCart.objects.create(
+                user=request.user, recipe=recipe
+            )
             serializer = ShoppingCartSerializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
-        instance = get_object_or_404(ShoppingCart, user=request.user, recipe=recipe)
+            return Response(
+                data=serializer.data, status=status.HTTP_201_CREATED
+            )
+        instance = get_object_or_404(
+            ShoppingCart, user=request.user, recipe=recipe
+        )
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -158,8 +168,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
         recipe_list = (
             ShoppingCart.objects.filter(user=request.user)
             .values(
-                "recipe__ingredients__name", 
-                "recipe__ingredients__measurement_unit"
+                "recipe__ingredients__name",
+                "recipe__ingredients__measurement_unit",
             )
             .annotate(amount=Sum("recipe__ingredients__amounts__amount"))
         )
@@ -180,8 +190,11 @@ class FollowViewSet(ListCreateDestroyMixin):
     serializer_class = FollowSerializer
 
     def get_queryset(self):
-        return Follow.objects.filter(user=self.request.user).annotate(
-            recipes_count=Count("following__recipes")).order_by("id")
+        return (
+            Follow.objects.filter(user=self.request.user)
+            .annotate(recipes_count=Count("following__recipes"))
+            .order_by("id")
+        )
 
     @action(
         detail=True,
@@ -193,7 +206,9 @@ class FollowViewSet(ListCreateDestroyMixin):
         """Подписаться или отписаться от пользователя."""
         following = get_object_or_404(User, id=self.kwargs["pk"])
         if request.method == "DELETE":
-            instance = Follow.objects.get(user=request.user, following=following)
+            instance = Follow.objects.get(
+                user=request.user, following=following
+            )
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
         context = self.get_serializer_context()

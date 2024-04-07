@@ -7,7 +7,7 @@ create_data = {
     "image": image,
     "name": "Плов",
     "text": "Охапка дров и плов готов!",
-    "cooking_time": 20
+    "cooking_time": 20,
 }
 updated_data = {
     "ingredients": [{"id": 1, "amount": 10}, {"id": 3, "amount": 20}],

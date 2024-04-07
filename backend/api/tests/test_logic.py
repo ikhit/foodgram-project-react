@@ -39,8 +39,12 @@ class TestLogic(APITestCase):
             username="Автор",
             email="author@test.com",
         )
-        cls.tag = Tag.objects.create(name="Обед", slug="lunch", color="#32CD32")
-        cls.ingredient_1 = Ingredient.objects.create(name="горох", measurement_unit="г")
+        cls.tag = Tag.objects.create(
+            name="Обед", slug="lunch", color="#32CD32"
+        )
+        cls.ingredient_1 = Ingredient.objects.create(
+            name="горох", measurement_unit="г"
+        )
         cls.ingredient_2 = Ingredient.objects.create(
             name="вроде бы мясо", measurement_unit="г"
         )
@@ -88,7 +92,9 @@ class TestLogic(APITestCase):
         }
         json_data = json.dumps(updated_data)
         with self.subTest(user=self.author, name=url_name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.author_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.author_token.key
+            )
             url = reverse(url_name, kwargs={"pk": self.recipe.pk})
             response = self.client.put(
                 url, data=json_data, content_type="application/json"
@@ -109,13 +115,17 @@ class TestLogic(APITestCase):
             self.assertEqual(self.recipe.name, updated_data["name"])
             self.assertEqual(self.recipe.text, updated_data["text"])
             self.assertEqual(updated_ingredients, expected_ingredients)
-            self.assertEqual(self.recipe.cooking_time, updated_data["cooking_time"])
+            self.assertEqual(
+                self.recipe.cooking_time, updated_data["cooking_time"]
+            )
 
     def test_author_delete_recipe(self):
         """Проверка удаления чужих рецептов."""
         url_name = "api:recipes-detail"
         with self.subTest(user=self.author, name=url_name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.author_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.author_token.key
+            )
             url = reverse(url_name, kwargs={"pk": self.recipe.pk})
             response = self.client.delete(url)
             self.assertEqual(response.status_code, HTTPStatus.NO_CONTENT)
@@ -138,7 +148,9 @@ class TestLogic(APITestCase):
 
         json_data = json.dumps(create_data)
         with self.subTest(user=self.user, name=url_name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.user_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.user_token.key
+            )
             url = reverse(url_name)
             response = self.client.post(
                 url, data=json_data, content_type="application/json"
@@ -163,7 +175,9 @@ class TestLogic(APITestCase):
         }
         json_data = json.dumps(updated_data)
         with self.subTest(user=self.user, name=url_name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.user_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.user_token.key
+            )
             url = reverse(url_name, kwargs={"pk": self.recipe.pk})
             response = self.client.put(
                 url, data=json_data, content_type="application/json"
@@ -183,7 +197,9 @@ class TestLogic(APITestCase):
         """Проверка запрета удаления и редактирования чужих рецептов."""
         url_name = "api:recipes-detail"
         with self.subTest(user=self.user, name=url_name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.user_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.user_token.key
+            )
             url = reverse(url_name, kwargs={"pk": self.recipe.pk})
             response = self.client.delete(url)
             self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
@@ -208,7 +224,9 @@ class TestLogic(APITestCase):
                 url = reverse(name[0], kwargs=name[1])
                 response = self.client.post(url)
                 self.assertEqual(response.status_code, expected_status)
-                self.assertEqual(expected_follows, Follow.objects.all().count())
+                self.assertEqual(
+                    expected_follows, Follow.objects.all().count()
+                )
                 self.client.logout()
 
     def test_add_recipe_to_shopping_cart(self):
@@ -233,7 +251,9 @@ class TestLogic(APITestCase):
                 url = reverse(name[0], kwargs=name[1])
                 response = self.client.post(url)
                 self.assertEqual(response.status_code, expected_status)
-                self.assertEqual(expected_cart, ShoppingCart.objects.all().count())
+                self.assertEqual(
+                    expected_cart, ShoppingCart.objects.all().count()
+                )
                 self.client.logout()
 
     def test_add_recipe_to_favorite(self):
@@ -258,7 +278,9 @@ class TestLogic(APITestCase):
                 url = reverse(name[0], kwargs=name[1])
                 response = self.client.post(url)
                 self.assertEqual(response.status_code, expected_status)
-                self.assertEqual(expected_favorite, Favorite.objects.all().count())
+                self.assertEqual(
+                    expected_favorite, Favorite.objects.all().count()
+                )
                 self.client.logout()
 
     def test_user_set_password(self):
@@ -266,7 +288,9 @@ class TestLogic(APITestCase):
         name = "api:users-set-password"
         json_data = json.dumps(change_password_data)
         with self.subTest(user=self.user, name=name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.user_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.user_token.key
+            )
             url = reverse(name)
             response = self.client.post(
                 url, data=json_data, content_type="application/json"

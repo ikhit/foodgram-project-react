@@ -39,8 +39,12 @@ class TestContent(APITestCase):
             first_name="Ав",
             last_name="Тор",
         )
-        cls.tag = Tag.objects.create(name="Обед", slug="lunch", color="#32CD32")
-        cls.ingredient_1 = Ingredient.objects.create(name="горох", measurement_unit="г")
+        cls.tag = Tag.objects.create(
+            name="Обед", slug="lunch", color="#32CD32"
+        )
+        cls.ingredient_1 = Ingredient.objects.create(
+            name="горох", measurement_unit="г"
+        )
         cls.ingredient_2 = Ingredient.objects.create(
             name="вроде бы мясо", measurement_unit="г"
         )
@@ -80,7 +84,9 @@ class TestContent(APITestCase):
                 response.data["author"], expected_recipe_data["author"]
             )
             for field in fields:
-                self.assertEqual(response.data[field], expected_recipe_data[field])
+                self.assertEqual(
+                    response.data[field], expected_recipe_data[field]
+                )
             for field in nested_fields:
                 self.assertEqual(
                     response.data[field],
@@ -94,8 +100,12 @@ class TestContent(APITestCase):
             url = reverse(url_name)
             response = self.client.get(url)
             for field in ("count", "next", "previous"):
-                self.assertEqual(response.data[field], expected_user_list[field])
-            self.assertEqual(response.data["results"], expected_user_list["results"])
+                self.assertEqual(
+                    response.data[field], expected_user_list[field]
+                )
+            self.assertEqual(
+                response.data["results"], expected_user_list["results"]
+            )
 
     def test_user_follow_response(self):
         """Проверка ответа при подписке на пользователя."""
@@ -116,11 +126,15 @@ class TestContent(APITestCase):
             "cooking_time",
         )
         with self.subTest(name=url_name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.user_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.user_token.key
+            )
             url = reverse(url_name, kwargs=url_kwarg)
             response = self.client.post(url)
             for field in fields:
-                self.assertEqual(response.data[field], expected_user_follow[field])
+                self.assertEqual(
+                    response.data[field], expected_user_follow[field]
+                )
             for num, field in enumerate(recipe_fields):
                 if field != "image":
                     self.assertEqual(
@@ -136,7 +150,9 @@ class TestContent(APITestCase):
         url_name = "api:recipes-favorite"
         url_kwarg = {"pk": self.recipe.pk}
         with self.subTest(name=url_name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.user_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.user_token.key
+            )
             url = reverse(url_name, kwargs=url_kwarg)
             response = self.client.post(url)
             fields = (
@@ -180,7 +196,9 @@ class TestContent(APITestCase):
         url_name = "api:recipes-shopping-cart"
         url_kwarg = {"pk": self.recipe.pk}
         with self.subTest(name=url_name):
-            self.client.credentials(HTTP_AUTHORIZATION="Token " + self.user_token.key)
+            self.client.credentials(
+                HTTP_AUTHORIZATION="Token " + self.user_token.key
+            )
             url = reverse(url_name, kwargs=url_kwarg)
             response = self.client.post(url)
             fields = (

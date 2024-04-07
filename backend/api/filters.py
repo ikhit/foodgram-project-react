@@ -6,6 +6,7 @@ from users.models import User
 
 class IngredientSearchFilter(SearchFilter):
     """Кастомный фильтр поиска для ингредиентов."""
+
     search_param = "name"
 
 
@@ -18,10 +19,12 @@ class RecipeFilter(FilterSet):
     tags = filters.ModelMultipleChoiceFilter(
         field_name="tags__slug",
         to_field_name="slug",
-        queryset=Tag.objects.all()
+        queryset=Tag.objects.all(),
     )
     is_favorited = filters.BooleanFilter(method="filter_is_favorited")
-    is_in_shopping_cart = filters.BooleanFilter(method="filter_is_in_shopping_cart")
+    is_in_shopping_cart = filters.BooleanFilter(
+        method="filter_is_in_shopping_cart"
+    )
 
     class Meta:
         model = Recipe
