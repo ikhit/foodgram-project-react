@@ -1,13 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from users.const import (
-    MAX_LENGTH_FOR_EMAIL,
-    MAX_LENGTH_FOR_NAME,
-    MAX_LENGTH_FOR_ROLE,
-    MAX_USER_PASSWORD_LENGTH,
-    ROLES,
-)
+
+from users.const import (MAX_LENGTH_FOR_EMAIL, MAX_LENGTH_FOR_NAME,
+                         MAX_LENGTH_FOR_ROLE, MAX_USER_PASSWORD_LENGTH, ROLES)
 
 
 class User(AbstractUser):

@@ -3,31 +3,21 @@ from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
-from recipes.models import (
-    Favorite,
-    Follow,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Tag,
-)
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+
+from recipes.models import (Favorite, Follow, Ingredient, Recipe, ShoppingCart,
+                            Tag)
 from users.models import User
 
 from .filters import IngredientSearchFilter, RecipeFilter
 from .pagination import FoodgramPagination
 from .permissions import IsAuthorOrAdminOrReadOnly, SelfORAdminOrReadOnly
-from .serializers import (
-    FavoriteSerializer,
-    FollowSerializer,
-    IngredientsSerializer,
-    RecipesCreateSerializer,
-    ShoppingCartSerializer,
-    TagsSerializer,
-)
+from .serializers import (FavoriteSerializer, FollowSerializer,
+                          IngredientsSerializer, RecipesCreateSerializer,
+                          ShoppingCartSerializer, TagsSerializer)
 from .viewsets import ListCreateDestroyMixin, RetrieveListMixin
 
 
