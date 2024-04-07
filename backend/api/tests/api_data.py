@@ -7,7 +7,7 @@ create_data = {
     "image": image,
     "name": "Плов",
     "text": "Охапка дров и плов готов!",
-    "cooking_time": 20,
+    "cooking_time": 20
 }
 updated_data = {
     "ingredients": [{"id": 1, "amount": 10}, {"id": 3, "amount": 20}],
@@ -99,8 +99,9 @@ expected_user_follow = {
     "is_subscribed": True,
     "recipes": [
         {
+            "id": 1,
             "name": "Плов",
-            "image": "recipes/images/temp.png",
+            "image": "http://testserver/media/recipes/images/temp.png",
             "cooking_time": 20,
         }
     ],

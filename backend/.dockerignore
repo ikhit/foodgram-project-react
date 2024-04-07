@@ -1,0 +1,5 @@
+venv
+venv_wsl
+.git
+.env
+db.sqlite3

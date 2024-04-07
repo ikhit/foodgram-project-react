@@ -1,6 +1,6 @@
 FROM python:3.9
 
-WORKDIR /foodgram
+WORKDIR /app
 
 COPY requirements.txt . 
 

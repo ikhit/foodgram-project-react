@@ -13,7 +13,7 @@ from .const import (
 from users.models import User
 
 
-class Tags(models.Model):
+class Tag(models.Model):
     """Модель тега."""
 
     name = models.CharField(
@@ -32,7 +32,7 @@ class Tags(models.Model):
         return self.name
 
 
-class Ingredients(models.Model):
+class Ingredient(models.Model):
     """Модель ингридиентов."""
 
     name = models.CharField(
@@ -70,12 +70,12 @@ class Recipe(models.Model):
         verbose_name="автор рецепта",
     )
     tags = models.ManyToManyField(
-        Tags,
+        Tag,
         related_name="recipes",
         verbose_name="тег",
     )
     ingredients = models.ManyToManyField(
-        Ingredients,
+        Ingredient,
         through="Amount",
         related_name="recipes",
         verbose_name="список и количетсво ингредиентов",
@@ -100,7 +100,7 @@ class Amount(models.Model):
         Recipe, on_delete=models.CASCADE, related_name="amounts"
     )
     ingredient = models.ForeignKey(
-        Ingredients,
+        Ingredient,
         on_delete=models.CASCADE,
         verbose_name="ингредиент",
         related_name="amounts",
@@ -161,6 +161,7 @@ class Follow(models.Model):
                 name="user_self_following",
             ),
         ]
+
 
     def __str__(self):
         return f"{self.user} подписан на {self.following}"

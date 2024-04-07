@@ -25,8 +25,6 @@ class SelfORAdminOrReadOnly(BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        return request.method in SAFE_METHODS or (
-            request.user == obj
-            or request.user.is_admin
-            or request.user.is_superuser
+        return request.method in SAFE_METHODS or request.user.is_authenticated and (
+            request.user == obj or request.user.is_admin or request.user.is_superuser
         )

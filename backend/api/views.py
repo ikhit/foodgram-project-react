@@ -1,16 +1,17 @@
 from django.db.models import Count, Sum
-from django.http import FileResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import viewsets, filters
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientSearchFilter
 
+from .pagination import FoodgramPagination
 from .permissions import IsAuthorOrAdminOrReadOnly, SelfORAdminOrReadOnly
 from .viewsets import RetrieveListMixin, ListCreateDestroyMixin
 from .serializers import (
@@ -24,8 +25,8 @@ from .serializers import (
 from recipes.models import (
     Favorite,
     Follow,
-    Ingredients,
-    Tags,
+    Ingredient,
+    Tag,
     Recipe,
     ShoppingCart,
 )
@@ -38,6 +39,7 @@ class CustomUserViewSet(DjoserUserViewSet):
     удаление неиспользующихся эндпоинтов.
     """
 
+    pagination_class = FoodgramPagination
     permission_classes = (SelfORAdminOrReadOnly,)
 
     @action(
@@ -81,7 +83,7 @@ class CustomUserViewSet(DjoserUserViewSet):
 class TagsViewSet(RetrieveListMixin):
     """Набор представлений для тегов."""
 
-    queryset = Tags.objects.all()
+    queryset = Tag.objects.all()
     serializer_class = TagsSerializer
     permission_classes = (AllowAny,)
 
@@ -89,11 +91,11 @@ class TagsViewSet(RetrieveListMixin):
 class IngredientsViewSet(RetrieveListMixin):
     """Набор представлений для ингредиентов."""
 
-    queryset = Ingredients.objects.all()
+    queryset = Ingredient.objects.all()
     serializer_class = IngredientsSerializer
     permission_classes = (AllowAny,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ("name",)
+    filter_backends = (IngredientSearchFilter,)
+    search_fields = ("^name",)
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
@@ -101,11 +103,12 @@ class RecipesViewSet(viewsets.ModelViewSet):
     избранное и добавление в корзину.
     """
 
-    queryset = Recipe.objects.all()
+    queryset = Recipe.objects.all().order_by("-pub_date")
     serializer_class = RecipesCreateSerializer
     filter_backends = (DjangoFilterBackend,)
-    filter_class = RecipeFilter
+    filterset_class = RecipeFilter
     permission_classes = (IsAuthorOrAdminOrReadOnly,)
+    pagination_class = FoodgramPagination
     http_method_names = ["get", "put", "post", "delete"]
 
     def perform_create(self, serializer):
@@ -121,15 +124,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Добавление или удаление рецепта из 'избранного'."""
         recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
         if request.method == "POST":
-            instance = Favorite.objects.create(
-                user=request.user, favorite=recipe
-            )
+            instance = Favorite.objects.create(user=request.user, favorite=recipe)
             serializer = FavoriteSerializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            return Response(
-                data=serializer.data, status=status.HTTP_201_CREATED
-            )
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
         instance = Favorite.objects.get(user=request.user, favorite=recipe)
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -144,48 +143,45 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Добавить рецепт в корзину или удалить его из корзины."""
         recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
         if request.method == "POST":
-            instance = ShoppingCart.objects.create(
-                user=request.user, recipe=recipe
-            )
+            instance = ShoppingCart.objects.create(user=request.user, recipe=recipe)
             serializer = ShoppingCartSerializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            return Response(
-                data=serializer.data, status=status.HTTP_201_CREATED
-            )
-        instance = get_object_or_404(
-            ShoppingCart, user=request.user, recipe=recipe
-        )
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+        instance = get_object_or_404(ShoppingCart, user=request.user, recipe=recipe)
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["GET"], url_path="download_shopping_cart")
     def send_shopping_list(self, request, pk=None):
         """Скачать список ингредиентов и граммовки."""
-        recipe_list = ShoppingCart.objects.filter(user=request.user)
-        list_text = "Список игредиентов и граммовки: \n"
-        for recipe in recipe_list:
-            data = recipe.recipe.ingredients.values(
-                "ingredient__name", "ingredient__measurement_unit"
-            ).annotate(amount=Sum("amount"))
-            for ingredient in data:
-                list_text += (
-                    f"{ingredient['ingredient__name']} - "
-                    f"{ingredient['amount']} "
-                    f"{ingredient['ingredient__measurement_unit']}\n"
-                )
-
-        file_name = f"{request.user}_cart_list.txt"
-        return FileResponse(list_text, as_attachment=True, filename=file_name)
+        recipe_list = (
+            ShoppingCart.objects.filter(user=request.user)
+            .values(
+                "recipe__ingredients__name", 
+                "recipe__ingredients__measurement_unit"
+            )
+            .annotate(amount=Sum("recipe__ingredients__amounts__amount"))
+        )
+        list_text = "Список игредиентов и граммовки: \n\n"
+        for ingredient in recipe_list:
+            list_text += (
+                f"{ingredient['recipe__ingredients__name']} - "
+                f"{ingredient['amount']} "
+                f"{ingredient['recipe__ingredients__measurement_unit']};\n"
+            )
+        response = HttpResponse(list_text, content_type="text/plain")
+        response["Content-Disposition"] = "attachment"
+        return response
 
 
 class FollowViewSet(ListCreateDestroyMixin):
+    pagination_class = FoodgramPagination
     serializer_class = FollowSerializer
 
     def get_queryset(self):
         return Follow.objects.filter(user=self.request.user).annotate(
-            recipes_count=Count("following__recipes")
-        )
+            recipes_count=Count("following__recipes")).order_by("id")
 
     @action(
         detail=True,
@@ -197,9 +193,7 @@ class FollowViewSet(ListCreateDestroyMixin):
         """Подписаться или отписаться от пользователя."""
         following = get_object_or_404(User, id=self.kwargs["pk"])
         if request.method == "DELETE":
-            instance = Follow.objects.get(
-                user=request.user, following=following
-            )
+            instance = Follow.objects.get(user=request.user, following=following)
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
         context = self.get_serializer_context()

@@ -8,18 +8,17 @@ from djoser.serializers import (
 )
 from rest_framework import serializers
 
+from .pagination import PAGE_SIZE
 from recipes.models import (
     Amount,
     Favorite,
     Follow,
-    Ingredients,
-    Tags,
+    Ingredient,
+    Tag,
     Recipe,
     ShoppingCart,
 )
 from users.models import User
-
-FOLLOWING_USER_RECIPES_SHOW_COUNT = 5
 
 
 class CustomUserSerializer(UserSerializer):
@@ -41,18 +40,14 @@ class CustomUserSerializer(UserSerializer):
     def get_is_subscribed(self, obj):
         request = self.context.get("request")
         if request.user.is_authenticated:
-            return Follow.objects.filter(
-                user=request.user, following=obj
-            ).exists()
+            return Follow.objects.filter(user=request.user, following=obj).exists()
         return False
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
     """Сериализатор для регистрации пользователя."""
 
-    password = serializers.CharField(
-        style={"input_type": "password"}, write_only=True
-    )
+    password = serializers.CharField(style={"input_type": "password"}, write_only=True)
 
     class Meta:
         model = User
@@ -66,42 +61,11 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         )
 
 
-class FollowSerializer(serializers.ModelSerializer):
-    """Сериализатор для подписок."""
-
-    class Meta:
-        model = Follow
-        fields = ("following",)
-
-    def validate(self, attrs):
-        following = self.context.get("following")
-        request = self.context.get("request")
-        if following == request.user:
-            raise ValidationError("Нельзя подписаться на самого себя!")
-        if Follow.objects.filter(
-            user=request.user, following=following
-        ).exists():
-            raise ValidationError(
-                f"Вы уже подписаны на пользователя {following}."
-            )
-        return super().validate(attrs)
-
-    def to_representation(self, instance):
-        representation = CustomUserSerializer(
-            instance=instance.following, context=self.context
-        ).data
-        representation["recipes"] = instance.following.recipes.values(
-            "name", "image", "cooking_time"
-        ).order_by("-pub_date")[:FOLLOWING_USER_RECIPES_SHOW_COUNT]
-        representation["recipes_count"] = instance.following.recipes.count()
-        return representation
-
-
 class IngredientsSerializer(serializers.ModelSerializer):
     """Сериализатор для ингредиентов."""
 
     class Meta:
-        model = Ingredients
+        model = Ingredient
         fields = ("id", "name", "measurement_unit")
 
 
@@ -109,7 +73,7 @@ class TagsSerializer(serializers.ModelSerializer):
     """Сериализатор для тегов."""
 
     class Meta:
-        model = Tags
+        model = Tag
         fields = ("id", "name", "color", "slug")
 
 
@@ -138,7 +102,7 @@ class AmountRecipeSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation.update(
             IngredientsSerializer(
-                instance=Ingredients.objects.get(pk=instance.ingredient.id)
+                instance=Ingredient.objects.get(pk=instance.ingredient.id)
             ).data
         )
         return representation
@@ -149,9 +113,7 @@ class AmountReadSerializer(serializers.ModelSerializer):
 
     id = serializers.IntegerField(source="ingredient.id")
     name = serializers.CharField(source="ingredient.name")
-    measurement_unit = serializers.CharField(
-        source="ingredient.measurement_unit"
-    )
+    measurement_unit = serializers.CharField(source="ingredient.measurement_unit")
     amount = serializers.IntegerField()
 
     class Meta:
@@ -215,17 +177,13 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     def get_is_favorited(self, obj):
         request = self.context.get("request")
         if request.user.is_authenticated:
-            return Favorite.objects.filter(
-                user=request.user, favorite=obj
-            ).exists()
+            return Favorite.objects.filter(user=request.user, favorite=obj).exists()
         return False
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get("request")
         if request.user.is_authenticated:
-            return ShoppingCart.objects.filter(
-                user=request.user, recipe=obj
-            ).exists()
+            return ShoppingCart.objects.filter(user=request.user, recipe=obj).exists()
         return False
 
 
@@ -234,13 +192,11 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
 
     image = Base64ImageField(required=True)
     tags = serializers.PrimaryKeyRelatedField(
-        many=True, required=True, queryset=Tags.objects.all()
+        many=True, required=True, queryset=Tag.objects.all()
     )
     ingredients = AmountRecipeSerializer(many=True, required=True)
 
-    author = serializers.SlugRelatedField(
-        read_only=True, slug_field="username"
-    )
+    author = serializers.SlugRelatedField(read_only=True, slug_field="username")
 
     class Meta:
         model = Recipe
@@ -293,6 +249,51 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        return RecipeReadSerializer(
-            instance=instance, context=self.context
+        return RecipeReadSerializer(instance=instance, context=self.context).data
+
+
+class FollowRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для отображения рецептов пользователей
+    на которых подписались.
+    """
+
+    class Meta:
+        model = Recipe
+        fields = ("id", "name", "image", "cooking_time")
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписок."""
+
+    recipes = FollowRecipeSerializer(
+        source="following.recipes", many=True, read_only=True
+    )
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Follow
+        fields = ("following", "recipes", "recipes_count")
+
+    def get_recipes_count(self, instance):
+        return instance.following.recipes.count()
+
+    def validate(self, attrs):
+        following = self.context.get("following")
+        request = self.context.get("request")
+        if following == request.user:
+            raise ValidationError("Нельзя подписаться на самого себя!")
+        if Follow.objects.filter(user=request.user, following=following).exists():
+            raise ValidationError(f"Вы уже подписаны на пользователя {following}.")
+        return super().validate(attrs)
+
+    def to_representation(self, instance):
+        representation = CustomUserSerializer(
+            instance=instance.following, context=self.context
         ).data
+        representation["recipes"] = FollowRecipeSerializer(
+            instance.following.recipes.order_by("-pub_date")[:PAGE_SIZE],
+            many=True,
+            context=self.context,
+        ).data
+        representation["recipes_count"] = self.get_recipes_count(instance)
+        return representation

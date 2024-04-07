@@ -7,8 +7,8 @@ from rest_framework.test import APITestCase
 
 from recipes.models import (
     Recipe,
-    Tags,
-    Ingredients,
+    Tag,
+    Ingredient,
 )
 
 User = get_user_model()
@@ -23,8 +23,8 @@ class TestRoutes(APITestCase):
         cls.author = User.objects.create(
             username="Автор", email="author@test.com"
         )
-        cls.tag = Tags.objects.create(name="Обед", slug="lunch")
-        cls.ingredient = Ingredients.objects.create(
+        cls.tag = Tag.objects.create(name="Обед", slug="lunch")
+        cls.ingredient = Ingredient.objects.create(
             name="горох", measurement_unit="г"
         )
         cls.recipe = Recipe.objects.create(
