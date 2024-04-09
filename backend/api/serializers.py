@@ -214,15 +214,14 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
 
     def add_update_ingredients_and_tags(self, ingredients, tags, instance):
         """Добавить или обновить рецепты и теги к рецепту."""
-        amounts = [
-            Amount(
+        existing_ingredients_id = [ingredient["id"] for ingredient in ingredients]
+        instance.amounts.exclude(ingredient_id__in=existing_ingredients_id).delete()
+        for ingredient in ingredients:
+            Amount.objects.update_or_create(
                 recipe=instance,
                 ingredient_id=ingredient["id"],
                 amount=ingredient["amount"],
             )
-            for ingredient in ingredients
-        ]
-        Amount.objects.bulk_create(amounts)
         instance.tags.set(tags)
         return instance
 
@@ -243,7 +242,6 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
         instance.image = validated_data.get("image", instance.image)
         tag_data = validated_data.pop("tags")
         ingredient_data = validated_data.pop("ingredients")
-        instance.ingredients.all().delete()
         instance = self.add_update_ingredients_and_tags(
             ingredients=ingredient_data, tags=tag_data, instance=instance
         )
