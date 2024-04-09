@@ -4,5 +4,7 @@ PAGE_SIZE = 6
 
 
 class FoodgramPagination(PageNumberPagination):
+    """Кастоманя пагинцаия для сервиса."""
+
     page_size = PAGE_SIZE
     page_size_query_param = "limit"
