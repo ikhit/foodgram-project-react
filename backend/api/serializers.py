@@ -214,8 +214,12 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
 
     def add_update_ingredients_and_tags(self, ingredients, tags, instance):
         """Добавить или обновить рецепты и теги к рецепту."""
-        existing_ingredients_id = [ingredient["id"] for ingredient in ingredients]
-        instance.amounts.exclude(ingredient_id__in=existing_ingredients_id).delete()
+        existing_ingredients_id = [
+            ingredient["id"] for ingredient in ingredients
+        ]
+        instance.amounts.exclude(
+            ingredient_id__in=existing_ingredients_id
+        ).delete()
         for ingredient in ingredients:
             Amount.objects.update_or_create(
                 recipe=instance,
