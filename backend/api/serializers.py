@@ -92,6 +92,20 @@ class AmountRecipeSerializer(serializers.ModelSerializer):
         model = Amount
         fields = ("id", "amount")
 
+    def validate(self, data):
+        amount = data.get("amount")
+        if amount < 1:
+            raise serializers.ValidationError(
+                {"Минимальное количество должно быть 1."}
+            )
+
+        ingredient_id = data.get("id")
+        if not Ingredient.objects.filter(id=ingredient_id).exists():
+            raise serializers.ValidationError(
+                {"Такого ингредиента нет в базе!"}
+            )
+        return data
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation.update(
@@ -212,6 +226,34 @@ class RecipesCreateSerializer(serializers.ModelSerializer):
             "author",
         )
 
+    def validate(self, data):
+        tags = data.get("tags")
+        if not tags:
+            raise serializers.ValidationError(
+                "Нельзя создать рецепт без тегов!"
+            )
+        tag_ids = set()
+        for tag in tags:
+            if tag in tag_ids:
+                raise serializers.ValidationError(
+                    "В рецепте не должно быть одинаковых тегов!"
+                )
+            tag_ids.add(tag)
+
+        ingredients = data.get("ingredients")
+        if not ingredients:
+            raise serializers.ValidationError(
+                "Нельзя создать рецепт без ингредиентов!"
+            )
+        ingredient_ids = set()
+        for ingredient in ingredients:
+            if ingredient["id"] in ingredient_ids:
+                raise serializers.ValidationError(
+                    "В рецепте не должно быть одинаковых ингредиентов!"
+                )
+            ingredient_ids.add(ingredient["id"])
+        return data
+
     def add_update_ingredients_and_tags(self, ingredients, tags, instance):
         """Добавить или обновить рецепты и теги к рецепту."""
         existing_ingredients_id = [
@@ -297,13 +339,22 @@ class FollowSerializer(serializers.ModelSerializer):
         return super().validate(attrs)
 
     def to_representation(self, instance):
+        request = self.context.get("request")
+        limit = request.GET.get("recipes_limit")
         representation = CustomUserSerializer(
             instance=instance.following, context=self.context
         ).data
-        representation["recipes"] = FollowRecipeSerializer(
-            instance.following.recipes.order_by("-pub_date")[:PAGE_SIZE],
-            many=True,
-            context=self.context,
-        ).data
+        if limit and limit.isdigit():
+            representation["recipes"] = FollowRecipeSerializer(
+                instance.following.recipes.order_by("-pub_date")[: int(limit)],
+                many=True,
+                context=self.context,
+            ).data
+        else:
+            representation["recipes"] = FollowRecipeSerializer(
+                instance.following.recipes.order_by("-pub_date")[:PAGE_SIZE],
+                many=True,
+                context=self.context,
+            ).data
         representation["recipes_count"] = self.get_recipes_count(instance)
         return representation

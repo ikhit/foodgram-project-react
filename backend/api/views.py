@@ -14,9 +14,10 @@ from users.models import User
 from .filters import IngredientSearchFilter, RecipeFilter
 from .pagination import FoodgramPagination
 from .permissions import IsAuthorOrAdminOrReadOnly, SelfORAdminOrReadOnly
-from .serializers import (FavoriteSerializer, FollowSerializer,
-                          IngredientsSerializer, RecipesCreateSerializer,
-                          ShoppingCartSerializer, TagsSerializer)
+from .serializers import (CustomUserSerializer, FavoriteSerializer,
+                          FollowSerializer, IngredientsSerializer,
+                          RecipesCreateSerializer, ShoppingCartSerializer,
+                          TagsSerializer)
 from .viewsets import ListCreateDestroyMixin, RetrieveListMixin
 
 
@@ -28,6 +29,11 @@ class CustomUserViewSet(DjoserUserViewSet):
 
     pagination_class = FoodgramPagination
     permission_classes = (SelfORAdminOrReadOnly,)
+
+    def get_serializer_class(self):
+        if self.action == "me" and self.request.method == "GET":
+            return CustomUserSerializer
+        return super().get_serializer_class()
 
     @action(
         ["get", "put", "patch", "delete"],
@@ -54,9 +60,6 @@ class CustomUserViewSet(DjoserUserViewSet):
     def reset_password_confirm(self, request, *args, **kwargs):
         return HttpResponseNotFound
 
-    def reset_password(self, request, *args, **kwargs):
-        return HttpResponseNotFound
-
     def set_username(self, request, *args, **kwargs):
         return HttpResponseNotFound
 
@@ -73,6 +76,7 @@ class TagsViewSet(RetrieveListMixin):
     queryset = Tag.objects.all()
     serializer_class = TagsSerializer
     permission_classes = (AllowAny,)
+    http_method_names = ("get",)
 
 
 class IngredientsViewSet(RetrieveListMixin):
@@ -83,6 +87,7 @@ class IngredientsViewSet(RetrieveListMixin):
     permission_classes = (AllowAny,)
     filter_backends = (IngredientSearchFilter,)
     search_fields = ("^name",)
+    http_method_names = ("get",)
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
@@ -109,8 +114,19 @@ class RecipesViewSet(viewsets.ModelViewSet):
     )
     def add_or_delete_favorires(self, request, pk=None):
         """Добавление или удаление рецепта из 'избранного'."""
-        recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
+        try:
+            recipe = Recipe.objects.get(id=self.kwargs["pk"])
+        except Exception:
+            if request.method == "POST":
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            if request.method == "DELETE":
+                return Response(status=status.HTTP_404_NOT_FOUND)
         if request.method == "POST":
+            if Favorite.objects.filter(favorite=recipe, user=request.user):
+                return Response(
+                    {"errors": "Рецепт уже в избранном!"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             instance = Favorite.objects.create(
                 user=request.user, favorite=recipe
             )
@@ -120,9 +136,12 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response(
                 data=serializer.data, status=status.HTTP_201_CREATED
             )
-        instance = Favorite.objects.get(user=request.user, favorite=recipe)
-        instance.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            instance = Favorite.objects.get(user=request.user, favorite=recipe)
+            instance.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         detail=True,
@@ -132,8 +151,21 @@ class RecipesViewSet(viewsets.ModelViewSet):
     )
     def add_or_delete_recipes_to_cart(self, request, pk=None):
         """Добавить рецепт в корзину или удалить его из корзины."""
-        recipe = get_object_or_404(Recipe, id=self.kwargs["pk"])
+        try:
+            recipe = Recipe.objects.get(id=self.kwargs["pk"])
+        except Exception:
+            if request.method == "POST":
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            if request.method == "DELETE":
+                return Response(status=status.HTTP_404_NOT_FOUND)
         if request.method == "POST":
+            if ShoppingCart.objects.filter(
+                recipe=recipe, user=request.user
+            ).exists():
+                return Response(
+                    {"errors": "Рецепт уже в корзине!"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             instance = ShoppingCart.objects.create(
                 user=request.user, recipe=recipe
             )
@@ -143,11 +175,14 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response(
                 data=serializer.data, status=status.HTTP_201_CREATED
             )
-        instance = get_object_or_404(
-            ShoppingCart, user=request.user, recipe=recipe
-        )
-        instance.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            instance = ShoppingCart.objects.get(
+                user=request.user, recipe=recipe
+            )
+            instance.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=["GET"], url_path="download_shopping_cart")
     def send_shopping_list(self, request, pk=None):
@@ -193,11 +228,14 @@ class FollowViewSet(ListCreateDestroyMixin):
         """Подписаться или отписаться от пользователя."""
         following = get_object_or_404(User, id=self.kwargs["pk"])
         if request.method == "DELETE":
-            instance = Follow.objects.get(
-                user=request.user, following=following
-            )
-            self.perform_destroy(instance)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            try:
+                instance = Follow.objects.get(
+                    user=request.user, following=following
+                )
+                self.perform_destroy(instance)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            except Exception:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
         context = self.get_serializer_context()
         context["following"] = following
         serializer = self.get_serializer(data=request.data, context=context)
