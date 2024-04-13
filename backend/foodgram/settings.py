@@ -2,7 +2,11 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from django.core.management.utils import get_random_secret_key
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
+    "colorfield",
     "djoser",
     "api.apps.ApiConfig",
     "recipes.apps.RecipesConfig",
@@ -64,16 +69,26 @@ TEMPLATES = [
 WSGI_APPLICATION = "foodgram.wsgi.application"
 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "foodgram_db"),
-        "USER": os.getenv("POSTGRES_USER", "foodgram_user"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
-        "HOST": os.getenv("DB_HOST", ""),
-        "PORT": os.getenv("DB_PORT", 5432),
+DJNAGO_DB_SQLITE3 = os.getenv("DJNAGO_DB_SQLITE3", False) == "True"
+
+if DJNAGO_DB_SQLITE3:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB", "foodgram_db"),
+            "USER": os.getenv("POSTGRES_USER", "foodgram_user"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
+            "HOST": os.getenv("DB_HOST", ""),
+            "PORT": os.getenv("DB_PORT", 5432),
+        }
+    }
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -133,7 +148,5 @@ DJOSER = {
     },
     "SERIALIZERS": {
         "user": "api.serializers.CustomUserSerializer",
-        "user_create": "api.serializers.CustomUserCreateSerializer",
-        "current_user": "api.serializers.CustomUserCreateSerializer",
     },
 }

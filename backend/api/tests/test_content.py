@@ -1,3 +1,4 @@
+# flake8: noqa
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from recipes.models import Ingredient, Recipe, Tag
