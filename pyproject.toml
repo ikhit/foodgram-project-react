@@ -1,0 +1,10 @@
+[tool.isort]
+profile = "black"
+known_first_party = ["foodgram", "recipes", "users"]
+default_section = "THIRDPARTY"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+skip = ["migrations", "venv"]
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 79
