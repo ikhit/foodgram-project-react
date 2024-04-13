@@ -13,7 +13,7 @@ services:
     volumes:
       - pg_data_production:/var/lib/postgresql/data
   backend:
-    image: ikhit/foodgram_backend
+    image: ikhit/foodgram_backend:latest
     depends_on:
       - db
     env_file: .env
@@ -22,12 +22,12 @@ services:
       - media:/app/media
   frontend:
     env_file: .env
-    image: ikhit/foodgram_frontend
+    image: ikhit/foodgram_frontend:latest
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static
   gateway:
-    image: ikhit/foodgram_gateway
+    image: ikhit/foodgram_gateway:latest
     depends_on:
       - backend
     env_file: .env
