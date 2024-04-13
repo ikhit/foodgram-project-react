@@ -9,12 +9,12 @@ from rest_framework.test import APITestCase
 
 from recipes.models import (
     Favorite,
-    Follow,
     Ingredient,
     Recipe,
     ShoppingCart,
     Tag,
 )
+from users.models import Follow
 
 from .api_data import (
     change_password_data,
@@ -220,7 +220,7 @@ class TestLogic(APITestCase):
                     HTTP_AUTHORIZATION="Token " + self.user_token.key
                 )
                 self.client.force_login(user)
-            name = ("api:follow-follow", {"pk": self.author.pk})
+            name = ("api:users-follow", {"id": self.author.id})
             with self.subTest(user=user, name=name[0]):
                 url = reverse(name[0], kwargs=name[1])
                 response = self.client.post(url)

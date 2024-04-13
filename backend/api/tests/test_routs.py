@@ -123,7 +123,7 @@ class TestRoutes(APITestCase):
                     HTTP_AUTHORIZATION="Token " + self.token.key
                 )
                 self.client.force_login(user)
-            name = "api:user-subscriptions"
+            name = "api:users-subscriptions-list"
             with self.subTest(user=user, name=name):
                 url = reverse(name)
                 response = self.client.get(url)

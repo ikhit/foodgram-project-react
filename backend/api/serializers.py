@@ -248,7 +248,6 @@ class FollowerReadSerializer(serializers.ModelSerializer):
         fields = ("recipes", "recipes_count")
 
     def get_recipes_count(self, instance):
-        print(type(instance))
         return instance.recipes.count()
 
     def get_recipes(self, instance):
