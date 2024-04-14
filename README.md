@@ -40,9 +40,9 @@ POSTGRES_PASSWORD=                - пароль пользователя
 DB_HOST=                          - адрес, по которому Django будет соединяться с базой данных.
 DB_PORT=                          - порт по которому Django будет обращаться к базе данных (5432 - по умолчанию)
 DJANGO_SETTINGS_SECRET_KEY=       - SECRET_KEY для settings.py основного приложения  
-DJANGO_DEBUG_STATUS=              - Для активации DUBG в settigns.py ввести значение True
+DJANGO_DEBUG_STATUS=              - Для активации DUBG в settigns.py установить значение True
 DJANGO_SETTINGS_ALLOWED_HOSTS=    - Список хостов в settings.py (пример - 127.0.0.1, exmpl.com,)
-DJNAGO_DB_SQLITE3=                - Переход с postgresql на sqlite3
+DJNAGO_DB_SQLITE3=                - Для перехода с postgresql на sqlite3 установить значение True
 ```
 
 Выполнить команду:
