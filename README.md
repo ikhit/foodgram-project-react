@@ -13,7 +13,7 @@ Foodgram - это веб-платформа, которая позволяет �
 ## Технологический стек
 
 - **Frontend**: React
-- **Backend**: Python, Django REST Framework, PostgreSQL, Docker, GitHub Actions, Nginx
+- **Backend**: Python, Django REST Framework, PostgreSQL, Docker, GitHub Actions, Nginx, Gunicorn
 
 ## Локальное развертывание проекта
 
@@ -34,14 +34,15 @@ touch .env
 - Заполнить .env файл данными:
 
 ```
-POSTGRES_DB=
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-DB_HOST=db
-DB_PORT=5432
-DJANGO_SETTINGS_SECRET_KEY=
-DJANGO_DEBUG_STATUS=True 
-DJANGO_SETTINGS_ALLOWED_HOSTS=127.0.0.1, foodgram.example.fake.com, localhost
+POSTGRES_DB=                      - имя базы данных           
+POSTGRES_USER=                    - имя пользователя                 
+POSTGRES_PASSWORD=                - пароль пользователя
+DB_HOST=                          - адрес, по которому Django будет соединяться с базой данных.
+DB_PORT=                          - порт по которому Django будет обращаться к базе данных (5432 - по умолчанию)
+DJANGO_SETTINGS_SECRET_KEY=       - SECRET_KEY для settings.py основного приложения  
+DJANGO_DEBUG_STATUS=              - Для активации DUBG в settigns.py ввести значение True
+DJANGO_SETTINGS_ALLOWED_HOSTS=    - Список хостов в settings.py (пример - 127.0.0.1, exmpl.com,)
+DJNAGO_DB_SQLITE3=                - Переход с postgresql на sqlite3
 ```
 
 Выполнить команду:
