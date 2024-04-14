@@ -1,6 +1,7 @@
 [tool.isort]
 profile = "black"
 known_first_party = ["foodgram", "recipes", "users"]
+no_lines_before = "LOCALFOLDER"
 default_section = "THIRDPARTY"
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 skip = ["migrations", "venv"]
