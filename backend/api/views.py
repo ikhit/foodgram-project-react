@@ -11,12 +11,10 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from users.models import Follow, User
-
 from .filters import IngredientSearchFilter, RecipeFilter
 from .pagination import FoodgramPagination
 from .permissions import IsAuthorOrAdminOrReadOnly
 from .serializers import (
-    CustomUserSerializer,
     FavoriteSerializer,
     FollowSerializer,
     IngredientsSerializer,
@@ -34,11 +32,6 @@ class CustomUserViewSet(DjoserUserViewSet):
 
     pagination_class = FoodgramPagination
 
-    def get_serializer_class(self):
-        if self.action == "me" and self.request.method == "GET":
-            return CustomUserSerializer
-        return super().get_serializer_class()
-
     def get_permissions(self):
         if self.action == "me":
             return [
@@ -54,7 +47,7 @@ class CustomUserViewSet(DjoserUserViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def follow(self, request, id=None):
-        """Подписаться или отписаться от пользователя."""
+        """Подписаться на пользователя."""
         following = get_object_or_404(User, id=self.kwargs["id"])
         context = self.get_serializer_context()
         context["following"] = following
@@ -65,6 +58,7 @@ class CustomUserViewSet(DjoserUserViewSet):
 
     @follow.mapping.delete
     def delete_follow(self, request, id=None):
+        """Отписаться от пользователя."""
         following = get_object_or_404(User, id=self.kwargs["id"])
         delete_cnt, _ = Follow.objects.filter(
             following=following, user=request.user
@@ -84,15 +78,10 @@ class CustomUserViewSet(DjoserUserViewSet):
         """Получить список всех подписок."""
         queryset = Follow.objects.filter(user=request.user).order_by("id")
         page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = FollowSerializer(
-                page, many=True, context={"request": request}
-            )
-            return self.get_paginated_response(serializer.data)
         serializer = FollowSerializer(
-            queryset, many=True, context={"request": request}
+            page, many=True, context={"request": request}
         )
-        return Response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
     @action(
         methods=["get"],
@@ -154,9 +143,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthorOrAdminOrReadOnly,)
     pagination_class = FoodgramPagination
 
-    def perform_create(self, serializer):
-        return serializer.save(author=self.request.user)
-
     @action(
         detail=True,
         methods=["POST"],
@@ -170,7 +156,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(user=request.user)
         return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
     @favorites.mapping.delete
@@ -197,7 +183,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(user=request.user)
         return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
     @cart.mapping.delete
