@@ -1,3 +1,0 @@
-project_url: https://megafoodgram.servebeer.com
-superuser: admin
-superuser password: @dm1np@ss
