@@ -1,7 +1,7 @@
 version: '3'
 
 volumes:
-  pg_data_production:
+  pg_data_foodgram:
   media:
   static:
 
@@ -11,7 +11,7 @@ services:
     image: postgres:13.10
     env_file: .env
     volumes:
-      - pg_data_production:/var/lib/postgresql/data
+      - pg_data_foodgram:/var/lib/postgresql/data
   backend:
     image: ikhit/foodgram_backend:latest
     depends_on:
